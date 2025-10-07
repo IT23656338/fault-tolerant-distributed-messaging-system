@@ -4,10 +4,16 @@ const DMS = (() => {
   const messagesEl = document.getElementById('messages');
   const refreshNodesBtn = document.getElementById('refresh-nodes');
   const refreshMessagesBtn = document.getElementById('refresh-messages');
+  const refreshHeartbeatsBtn = document.getElementById('refresh-heartbeats');
+  const refreshLeaderBtn = document.getElementById('refresh-leader');
+  const refreshReplicasBtn = document.getElementById('refresh-replicas');
+  const enablePartitionBtn = document.getElementById('enable-partition');
+  const disablePartitionBtn = document.getElementById('disable-partition');
   const sendForm = document.getElementById('send-form');
   const sendStatus = document.getElementById('send-status');
   const senderSelect = document.getElementById('sender');
   const receiverSelect = document.getElementById('receiver');
+  const healthEl = document.getElementById('health');
   
   // Get current server info from URL
   const currentServer = window.location.hostname + ':' + window.location.port;
@@ -131,6 +137,85 @@ const DMS = (() => {
     }
   }
 
+  async function refreshHeartbeats() {
+    try {
+      refreshHeartbeatsBtn && (refreshHeartbeatsBtn.disabled = true);
+      const res = await fetch('/admin/heartbeats');
+      const beats = await res.json();
+      healthEl.innerHTML = '';
+      if (!beats || beats.length === 0) {
+        healthEl.innerHTML = '<div class="item">No heartbeats</div>';
+        return;
+      }
+      for (const b of beats) {
+        const div = document.createElement('div');
+        div.className = 'item';
+        div.textContent = `❤️ ${b}`;
+        healthEl.appendChild(div);
+      }
+    } catch (e) {
+      healthEl.innerHTML = '<div class="item">Error loading heartbeats</div>';
+    } finally {
+      refreshHeartbeatsBtn && (refreshHeartbeatsBtn.disabled = false);
+    }
+  }
+
+  async function refreshLeader() {
+    try {
+      refreshLeaderBtn && (refreshLeaderBtn.disabled = true);
+      const res = await fetch('/admin/leader');
+      const leader = await res.text();
+      const div = document.createElement('div');
+      div.className = 'item';
+      div.textContent = `👑 Leader: ${leader || 'unknown'}`;
+      healthEl.appendChild(div);
+    } catch (e) {
+      const div = document.createElement('div');
+      div.className = 'item';
+      div.textContent = 'Error loading leader';
+      healthEl.appendChild(div);
+    } finally {
+      refreshLeaderBtn && (refreshLeaderBtn.disabled = false);
+    }
+  }
+
+  async function refreshReplicas() {
+    try {
+      refreshReplicasBtn && (refreshReplicasBtn.disabled = true);
+      const res = await fetch('/admin/replicas');
+      const reps = await res.json();
+      const div = document.createElement('div');
+      div.className = 'item';
+      div.textContent = `🔗 Replicas: ${Array.isArray(reps) ? reps.join(', ') : 'unknown'}`;
+      healthEl.appendChild(div);
+    } catch (e) {
+      const div = document.createElement('div');
+      div.className = 'item';
+      div.textContent = 'Error loading replicas';
+      healthEl.appendChild(div);
+    } finally {
+      refreshReplicasBtn && (refreshReplicasBtn.disabled = false);
+    }
+  }
+
+  async function setPartitionMode(enable) {
+    try {
+      const url = enable ? '/admin/partition/enable' : '/admin/partition/disable';
+      const res = await fetch(url);
+      if (!res.ok) throw new Error('Failed');
+      const txt = await res.text();
+      const div = document.createElement('div');
+      div.className = 'item';
+      div.textContent = `🧪 ${txt}`;
+      healthEl.appendChild(div);
+    } catch (e) {
+      const div = document.createElement('div');
+      div.className = 'item';
+      div.textContent = 'Error toggling partition mode';
+      healthEl.appendChild(div);
+    }
+  }
+
   function escapeHtml(s) {
     return s.replace(/[&<>"]?/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c] || c));
   }
@@ -161,14 +246,17 @@ const DMS = (() => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ sender, receiver, payload })
       });
-      if (!res.ok) throw new Error('Failed');
+      if (!res.ok) {
+        const text = await res.text().catch(()=>'');
+        throw new Error('Failed: ' + text);
+      }
       const displayReceiver = receiver === 'BROADCAST' ? 'ALL SERVERS' : receiver;
       sendStatus.textContent = `Message sent from ${sender} to ${displayReceiver}`;
       sendStatus.className = 'status success';
       document.getElementById('payload').value = '';
       refreshMessages();
     } catch (e) {
-      sendStatus.textContent = 'Error sending message between servers';
+      sendStatus.textContent = 'Error sending message between servers: ' + (e && e.message ? e.message : 'Unknown error');
       sendStatus.className = 'status error';
     }
   }
@@ -182,6 +270,11 @@ const DMS = (() => {
 
   refreshNodesBtn && refreshNodesBtn.addEventListener('click', refreshNodes);
   refreshMessagesBtn && refreshMessagesBtn.addEventListener('click', refreshMessages);
+  refreshHeartbeatsBtn && refreshHeartbeatsBtn.addEventListener('click', () => { healthEl.innerHTML=''; refreshHeartbeats(); });
+  refreshLeaderBtn && refreshLeaderBtn.addEventListener('click', () => { healthEl.innerHTML=''; refreshLeader(); });
+  refreshReplicasBtn && refreshReplicasBtn.addEventListener('click', () => { healthEl.innerHTML=''; refreshReplicas(); });
+  enablePartitionBtn && enablePartitionBtn.addEventListener('click', () => setPartitionMode(true));
+  disablePartitionBtn && disablePartitionBtn.addEventListener('click', () => setPartitionMode(false));
   sendForm && sendForm.addEventListener('submit', onSend);
 
   // Initialize current server display

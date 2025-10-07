@@ -3,6 +3,8 @@ package com.dms.common.model;
 import java.io.Serializable;
 import java.time.Instant;
 import java.util.UUID;
+import java.util.Map;
+import java.util.HashMap;
 
 public class Message implements Serializable {
     private String id;
@@ -10,6 +12,9 @@ public class Message implements Serializable {
     private String receiver;
     private String payload;
     private Instant timestamp;
+    private long lamport;
+    private String originNodeId;
+    private Map<String, Long> vectorClock = new HashMap<>();
 
     public Message() {
         this.id = UUID.randomUUID().toString();
@@ -33,4 +38,13 @@ public class Message implements Serializable {
     public void setPayload(String payload) { this.payload = payload; }
     public Instant getTimestamp() { return timestamp; }
     public void setTimestamp(Instant timestamp) { this.timestamp = timestamp; }
+
+    public long getLamport() { return lamport; }
+    public void setLamport(long lamport) { this.lamport = lamport; }
+
+    public String getOriginNodeId() { return originNodeId; }
+    public void setOriginNodeId(String originNodeId) { this.originNodeId = originNodeId; }
+
+    public Map<String, Long> getVectorClock() { return vectorClock; }
+    public void setVectorClock(Map<String, Long> vectorClock) { this.vectorClock = vectorClock; }
 }

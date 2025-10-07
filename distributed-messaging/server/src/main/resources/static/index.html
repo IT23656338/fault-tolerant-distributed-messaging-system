@@ -21,6 +21,18 @@
         </section>
 
         <section class="panel">
+            <h2>Health & Topology</h2>
+            <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:8px;">
+                <button id="refresh-heartbeats" class="secondary">Heartbeats</button>
+                <button id="refresh-leader" class="secondary">Leader</button>
+                <button id="refresh-replicas" class="secondary">Replicas</button>
+                <button id="enable-partition" class="secondary">Enable Partition Mode</button>
+                <button id="disable-partition" class="secondary">Disable Partition Mode</button>
+            </div>
+            <div id="health" class="list"></div>
+        </section>
+
+        <section class="panel">
             <h2>Send Message</h2>
             <form id="send-form">
                 <div class="field">
